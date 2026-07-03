@@ -18,6 +18,7 @@ datasource db {
 model User {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   email       String?  @unique
+  password    String
   displayName String
   avatarSkin  String   @default("default_character") // Reference to sprite sheet
   
