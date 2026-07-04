@@ -1,8 +1,8 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+
+
+
 
 generator client {
   provider = "prisma-client"
@@ -20,9 +20,9 @@ model User {
   email       String?  @unique
   password    String
   displayName String
-  avatarSkin  String   @default("default_character") // Reference to sprite sheet
+  avatarSkin  String   @default("default_character") 
   
-  // Relations
+  
   spaces      Space[]  @relation("SpaceCreator")
 
   createdAt   DateTime @default(now())
@@ -34,22 +34,22 @@ model Space {
   name        String
   description String?
   
-  // Grid Dimensions
-  width       Int      @default(32) // In tiles
-  height      Int      @default(32) // In tiles
   
-  // The Phaser tilemap (1D/2D array of integers representing textures/collisions)
+  width       Int      @default(32) 
+  height      Int      @default(32) 
+  
+  
   mapData     Json     
   
-  // Where users drop in when they join
+  
   spawnX      Int      @default(0)
   spawnY      Int      @default(0)
 
-  // Relations
+  
   creatorId   String   @db.ObjectId
   creator     User     @relation("SpaceCreator", fields: [creatorId], references: [id])
   
-  // Kept InteractiveObjects for persistent data (like Whiteboard URLs)
+  
   objects     InteractiveObject[]
 
   createdAt   DateTime @default(now())
@@ -61,13 +61,13 @@ model InteractiveObject {
   spaceId     String   @db.ObjectId
   space       Space    @relation(fields: [spaceId], references: [id], onDelete: Cascade)
   
-  // Position on the grid
+  
   x           Int
   y           Int
   
-  // Type of object (e.g., "WHITEBOARD", "YOUTUBE", "WEBSITE")
+  
   type        String   
   
-  // The data it holds (e.g., an Excalidraw room ID or a YouTube URL)
+  
   payload     String?  
 }
