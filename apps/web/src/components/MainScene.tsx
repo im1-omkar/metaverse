@@ -61,8 +61,8 @@ const initialState = {
             url: '../assets/items/chair.png'
         },
         {
-            name: 'computerers',
-            url: '../assets/items/computers.png'
+            name :'grey-bg',
+            url : '../assets/tiles/grey.png'
         }
     ],
     sprite: [
@@ -88,6 +88,15 @@ const initialState = {
             configs: {
                 frameWidth: 64,
                 frameHeight: 64
+            }
+        },
+        ,
+        {
+            name: 'computers',
+            url: '../assets/items/computers.png',
+            configs : {
+                frameWidth: 96,
+                frameHeight : 64
             }
         }
     ]
@@ -123,7 +132,7 @@ export const initializeGame = ()=>{
 
     }
 
-    let platforms: Phaser.Physics.Arcade.StaticGroup;
+    let walls: Phaser.Physics.Arcade.StaticGroup;
 
     let player: Phaser.Physics.Arcade.Sprite;
 
@@ -139,8 +148,9 @@ export const initializeGame = ()=>{
 
 
     function create(this:Phaser.Scene) {
+        walls = this.physics.add.staticGroup();
 
-        this.add.image(400, 300, 'brick-tiles');
+        this.add.image(400, 300, "grey-bg");
 
         function createRoom(
             this: Phaser.Scene,
@@ -161,46 +171,77 @@ export const initializeGame = ()=>{
 
                 // Top wall
                 if (!doorOnTop || i < doorStart || i > doorEnd) {
-                    this.add.image(x + i * tile, y, "walls", 0)
+                    const wall = walls.create(x + i * tile, y, "walls", 0)
                         .setOrigin(0)
                         .setScale(SCALE);
+
+                    wall.refreshBody();
                 }
 
                 // Bottom wall
                 if (doorOnTop || i < doorStart || i > doorEnd) {
-                    this.add.image(x + i * tile, y + (h - 1) * tile, "walls", 0)
+                    const wall = walls.create(
+                        x + i * tile,
+                        y + (h - 1) * tile,
+                        "walls",
+                        0
+                    )
                         .setOrigin(0)
                         .setScale(SCALE);
+
+                    wall.refreshBody();
                 }
             }
 
             // Left & Right
             for (let i = 1; i < h - 1; i++) {
-                this.add.image(x, y + i * tile, "walls", 0)
+
+                const leftWall = walls.create(
+                    x,
+                    y + i * tile,
+                    "walls",
+                    0
+                )
                     .setOrigin(0)
                     .setScale(SCALE);
 
-                this.add.image(x + (w - 1) * tile, y + i * tile, "walls", 0)
+                leftWall.refreshBody();
+
+                const rightWall = walls.create(
+                    x + (w - 1) * tile,
+                    y + i * tile,
+                    "walls",
+                    0
+                )
                     .setOrigin(0)
                     .setScale(SCALE);
+
+                rightWall.refreshBody();
             }
         }
-        
-        // Top rooms → door at bottom
+
+        // Top rooms
         createRoom.call(this, 64, 64, 14, 9);
         createRoom.call(this, 448, 64, 14, 9);
 
-        // Bottom rooms → door at top
+        // Bottom rooms
         createRoom.call(this, 64, 352, 14, 9, true);
         createRoom.call(this, 448, 352, 14, 9, true);
 
-        platforms = this.physics.add.staticGroup();
+        this.physics.add.sprite(130,120,'computers',0)
+        this.physics.add.sprite(260, 120, 'computers', 1)
+        this.physics.add.sprite(570, 120, 'computers', 1)
 
-        platforms.create(400, 568, 'ground').setScale(2).refreshBody();
+        this.physics.add.sprite(180, 460, 'computers', 2)
+        this.physics.add.sprite(580, 460, 'computers', 3 )
+        // platforms = this.physics.add.staticGroup();
 
-        platforms.create(600, 400, 'ground');
-        platforms.create(50, 250, 'ground');
-        platforms.create(750, 220, 'ground');
+        // platforms.create(400, 568, 'ground').setScale(2).refreshBody();
+
+        // platforms.create(600, 400, 'ground');
+        // platforms.create(50, 250, 'ground');
+        // platforms.create(750, 220, 'ground');
+        
 
         player = this.physics.add.sprite(100, 450, 'harry');
 
@@ -242,52 +283,25 @@ export const initializeGame = ()=>{
             repeat: -1,
         });
 
-        this.physics.add.collider(player, platforms);
+        //this.physics.add.collider(player, platforms);
 
         cursors = this.input.keyboard!.createCursorKeys();
         keyT = this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.T);
 
 
-        stars = this.physics.add.group({
-            key: 'star',
-            repeat: 11,
-            setXY: { x: 12, y: 0, stepX: 70 }
-        });
+       
 
-        stars.getChildren().forEach( (child)=>{
-            const star = child as Phaser.Physics.Arcade.Sprite;
+       
 
-            star.setBounceY(Phaser.Math.FloatBetween(0.4, 0.8));
-
-        });
-
-        this.physics.add.collider(stars, platforms)
-        this.physics.add.overlap(player, stars, collectStar, undefined, this);
+        //this.physics.add.collider(stars, platforms)
+        this.physics.add.collider(player, walls);
 
         scoreText = this.add.text(16, 16, 'score: 0', { fontSize: '32px' });
 
+
     }
 
-    function collectStar(
-        object1:
-            | Phaser.Types.Physics.Arcade.GameObjectWithBody
-            | Phaser.Physics.Arcade.Body
-            | Phaser.Physics.Arcade.StaticBody
-            | Phaser.Tilemaps.Tile,
-        object2:
-            | Phaser.Types.Physics.Arcade.GameObjectWithBody
-            | Phaser.Physics.Arcade.Body
-            | Phaser.Physics.Arcade.StaticBody
-            | Phaser.Tilemaps.Tile
-    ) {
-        const player = object1 as Phaser.Physics.Arcade.Sprite;
-        const star = object2 as Phaser.Physics.Arcade.Sprite;
-
-        star.disableBody(true, true);
-
-        score += 10;
-        scoreText.setText(`Score: ${score}`);
-    }
+    
 
 
     function update() {
