@@ -126,4 +126,4 @@ function broadcastToSpace(spaceId: string, excludePlayerId: string, payload: any
     }
 }
 
-console.log(' WebSocket server is running on PORT : 3000')
+console.log(' WebSocket server is running on PORT : 8080')

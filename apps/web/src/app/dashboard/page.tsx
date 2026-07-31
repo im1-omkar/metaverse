@@ -4,7 +4,7 @@ import React, { useEffect } from 'react'
 const Page = () => {
 
    return <div>
-    command dashboard
+    the dashboard
    </div>
 }
 

@@ -2,7 +2,7 @@
 import Phaser from "phaser"
 import { MapData } from "@/lib/store";
 
-export const initializeGame = (spaceId: string, mapData: MapData) => {
+export const initializeGame = (spaceId: string, mapData: MapData, ws:WebSocket ) => {
 
     const config: Phaser.Types.Core.GameConfig = {
         type: Phaser.AUTO,
@@ -21,10 +21,6 @@ export const initializeGame = (spaceId: string, mapData: MapData) => {
     };
 
     const game = new Phaser.Game(config);
-
-
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080";
-    let ws: WebSocket;
 
     const otherPlayers: Record<string, Phaser.Physics.Arcade.Sprite> = {};
     let myId: string | null = null;
@@ -127,7 +123,6 @@ export const initializeGame = (spaceId: string, mapData: MapData) => {
         this.physics.add.collider(player, walls);
         this.physics.add.collider(player, computers);
 
-        ws = new WebSocket(`${wsUrl}?spaceId=${spaceId}`);
 
         ws.onmessage = (event) => {
             const data = JSON.parse(event.data);
