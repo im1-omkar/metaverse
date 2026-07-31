@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import { useParams } from 'next/navigation'
 import { useGameStore } from '@/lib/store'
 import { useMediaStore } from '@/lib/mediaStore'
+import { Ellipsis, Mic, MicOff, Video, VideoOff } from 'lucide-react'
 
 const Page = () => {
     const params = useParams();
@@ -21,6 +22,33 @@ const Page = () => {
     const peersRef = useRef<Record<string, RTCPeerConnection>>({});
     const [remoteStreams, setRemoteStreams] = useState<Record<string, MediaStream>>({});
     const myIdRef = useRef<string>("");
+
+    // media toggle state
+    const [isAudioMuted, setIsAudioMuted] = useState(false);
+    const [isVideoOff, setIsVideoOff] = useState(false);
+
+    //media toggle handler
+    const toggleAudio = () => {
+        if (stream) {
+            const audioTracks = stream.getAudioTracks();
+            if (audioTracks.length > 0) {
+                // Toggle the enabled property
+                audioTracks[0].enabled = !audioTracks[0].enabled;
+                setIsAudioMuted(!audioTracks[0].enabled);
+            }
+        }
+    };
+
+    const toggleVideo = () => {
+        if (stream) {
+            const videoTracks = stream.getVideoTracks();
+            if (videoTracks.length > 0) {
+                // Toggle the enabled property
+                videoTracks[0].enabled = !videoTracks[0].enabled;
+                setIsVideoOff(!videoTracks[0].enabled);
+            }
+        }
+    };
 
     useEffect(() => {
         if (videoRef.current && stream) {
@@ -186,10 +214,27 @@ const Page = () => {
         <div className='flex-5 w-full h-screen flex flex-col justify-around items-center  '>
             <div className='text-6xl'>The Metaverse</div>
             <div id="game-container" />
-            <div className='flex'>
-                <div className='bg-red-500 h-20 w-20 m-10'></div>
-                <div className='bg-red-500 h-20 w-20 m-10'></div>
-                <div className='bg-red-500 h-20 w-20 m-10'></div>
+            <div className='flex gap-4 p-4'>
+                <button
+                    onClick={toggleAudio}
+                    className={`px-6 py-4 rounded-full font-bold text-white transition-colors duration-200 ${isAudioMuted ? 'bg-red-600 hover:bg-red-700' : 'bg-green-500 hover:bg-green-600'
+                        }`}
+                >
+                    {isAudioMuted ? <MicOff/> : <Mic/> }
+                </button>
+
+                <button
+                    onClick={toggleVideo}
+                    className={`px-6 py-4 rounded-full font-bold text-white transition-colors duration-200 ${isVideoOff ? 'bg-red-600 hover:bg-red-700' : 'bg-green-500 hover:bg-green-600'
+                        }`}
+                >
+                    {isVideoOff ? <VideoOff/> : <Video/>}
+                </button>
+
+                {/* Placeholder for the 3rd button if needed */}
+                <div className='bg-gray-500 h-14 w-20 rounded-full flex items-center justify-center text-white'>
+                    <Ellipsis/>
+                </div>
             </div>
         </div>
         {/* VIDEO SIDEBAR */}
