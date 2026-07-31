@@ -81,6 +81,19 @@ wss.on('connection', (ws: WebSocket, req) => {
                     });
                 }
             }
+            else if (data.type === 'offer' || data.type === 'answer' || data.type === 'ice-candidate') {
+                const targetId = data.targetId;
+
+                // If the target player exists in this space, forward the message directly to them
+                if (targetId && spaces[spaceId][targetId]) {
+                    const targetWs = spaces[spaceId][targetId].ws;
+
+                    if (targetWs.readyState === WebSocket.OPEN) {
+                        // We send the exact same data payload through
+                        targetWs.send(JSON.stringify(data));
+                    }
+                }
+            }
         } catch (err) {
             console.error("Invalid message format received", err);
         }

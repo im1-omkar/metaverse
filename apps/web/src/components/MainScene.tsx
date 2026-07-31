@@ -2,7 +2,13 @@
 import Phaser from "phaser"
 import { MapData } from "@/lib/store";
 
-export const initializeGame = (spaceId: string, mapData: MapData, ws:WebSocket ) => {
+export const initializeGame = (
+    spaceId: string,
+    mapData: MapData,
+    onGameReady: (attachWs: (socket: WebSocket) => void) => void 
+) => {
+
+    let ws: WebSocket | null = null;
 
     const config: Phaser.Types.Core.GameConfig = {
         type: Phaser.AUTO,
@@ -47,12 +53,12 @@ export const initializeGame = (spaceId: string, mapData: MapData, ws:WebSocket )
     }
 
     function create(this: Phaser.Scene) {
-        walls = this.physics.add.staticGroup();
-        computers = this.physics.add.staticGroup();
+        const scene = this; 
+        walls = scene.physics.add.staticGroup();
+        computers = scene.physics.add.staticGroup();
 
-        this.add.image(400, 300, "grey-bg").setScale(1.3);
+        scene.add.image(400, 300, "grey-bg").setScale(1.3);
 
-        //room creation logic
         function createRoom(this: Phaser.Scene, x: number, y: number, w: number, h: number, doorOnTop: boolean = false) {
             const SCALE = 0.3;
             const tile = 64 * SCALE;
@@ -88,73 +94,55 @@ export const initializeGame = (spaceId: string, mapData: MapData, ws:WebSocket )
         computers.create(180, 460, 'computers', 2);
         computers.create(580, 460, 'computers', 3);
 
-        player = this.physics.add.sprite(100, 290, 'harry');
+        player = scene.physics.add.sprite(100, 290, 'harry');
         player.setBounce(0);
         player.setCollideWorldBounds(true);
 
-        this.anims.create({ 
-            key: 'turn', frames: [{ key: 'harry', frame: 4 }], 
-            frameRate: 20 
-        });
-        this.anims.create({ 
-            key: "walk-down", 
-            frames: this.anims.generateFrameNumbers("harry", { start: 43, end: 49 }), 
-            frameRate: 10, 
-            repeat: -1 
-        });
-        this.anims.create({ 
-            key: "walk-left", 
-            frames: this.anims.generateFrameNumbers("harry", { start: 36, end: 41 }), 
-            frameRate: 10, 
-            repeat: -1 
-        });
-        this.anims.create({ 
-            key: "walk-right", 
-            frames: this.anims.generateFrameNumbers("harry", { start: 24, end: 29 }), 
-            frameRate: 10, repeat: -1 
-        });
-        this.anims.create({ 
-            key: "walk-up", 
-            frames: this.anims.generateFrameNumbers("harry", { start: 30, end: 35 }), 
-            frameRate: 10, repeat: -1 
-        });
+        scene.anims.create({ key: 'turn', frames: [{ key: 'harry', frame: 4 }], frameRate: 20 });
+        scene.anims.create({ key: "walk-down", frames: scene.anims.generateFrameNumbers("harry", { start: 43, end: 49 }), frameRate: 10, repeat: -1 });
+        scene.anims.create({ key: "walk-left", frames: scene.anims.generateFrameNumbers("harry", { start: 36, end: 41 }), frameRate: 10, repeat: -1 });
+        scene.anims.create({ key: "walk-right", frames: scene.anims.generateFrameNumbers("harry", { start: 24, end: 29 }), frameRate: 10, repeat: -1 });
+        scene.anims.create({ key: "walk-up", frames: scene.anims.generateFrameNumbers("harry", { start: 30, end: 35 }), frameRate: 10, repeat: -1 });
 
-        cursors = this.input.keyboard!.createCursorKeys();
-        this.physics.add.collider(player, walls);
-        this.physics.add.collider(player, computers);
+        cursors = scene.input.keyboard!.createCursorKeys();
+        scene.physics.add.collider(player, walls);
+        scene.physics.add.collider(player, computers);
 
+        onGameReady((socket: WebSocket) => {
+            ws = socket; 
 
-        ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
+            ws.addEventListener('message', (event) => {
+                const data = JSON.parse(event.data);
 
-            switch (data.type) {
-                case 'init':
-                    myId = data.id;
-                    Object.keys(data.players).forEach((id) => {
-                        if (id !== myId) addOtherPlayer(this, id, data.players[id]);
-                    });
-                    break;
-                case 'player_joined':
-                    if (data.id !== myId) addOtherPlayer(this, data.id, data.player);
-                    break;
-                case 'player_moved':
-                    if (otherPlayers[data.id]) {
-                        otherPlayers[data.id].setPosition(data.x, data.y);
-                        if (data.anim) {
-                            otherPlayers[data.id].anims.play(data.anim, true);
-                        } else {
-                            otherPlayers[data.id].anims.stop();
+                switch (data.type) {
+                    case 'init':
+                        myId = data.id;
+                        Object.keys(data.players).forEach((id) => {
+                            if (id !== myId) addOtherPlayer(scene, id, data.players[id]);
+                        });
+                        break;
+                    case 'player_joined':
+                        if (data.id !== myId) addOtherPlayer(scene, data.id, data.player);
+                        break;
+                    case 'player_moved':
+                        if (otherPlayers[data.id]) {
+                            otherPlayers[data.id].setPosition(data.x, data.y);
+                            if (data.anim) {
+                                otherPlayers[data.id].anims.play(data.anim, true);
+                            } else {
+                                otherPlayers[data.id].anims.stop();
+                            }
                         }
-                    }
-                    break;
-                case 'player_left':
-                    if (otherPlayers[data.id]) {
-                        otherPlayers[data.id].destroy();
-                        delete otherPlayers[data.id];
-                    }
-                    break;
-            }
-        };
+                        break;
+                    case 'player_left':
+                        if (otherPlayers[data.id]) {
+                            otherPlayers[data.id].destroy();
+                            delete otherPlayers[data.id];
+                        }
+                        break;
+                }
+            });
+        });
     }
 
     function addOtherPlayer(scene: Phaser.Scene, id: string, playerInfo: any) {
@@ -169,26 +157,16 @@ export const initializeGame = (spaceId: string, mapData: MapData, ws:WebSocket )
         let vy = 0;
         let currentAnim = '';
 
-        if (cursors.left.isDown) {
-            vx = -SPEED; currentAnim = "walk-left"; player.anims.play(currentAnim, true);
-        } else if (cursors.right.isDown) {
-            vx = SPEED; currentAnim = "walk-right"; player.anims.play(currentAnim, true);
-        } else if (cursors.up.isDown) {
-            vy = -SPEED; currentAnim = "walk-up"; if (vx === 0) player.anims.play(currentAnim, true);
-        } else if (cursors.down.isDown) {
-            vy = SPEED; currentAnim = "walk-down"; if (vx === 0) player.anims.play(currentAnim, true);
-        }
+        if (cursors.left.isDown) { vx = -SPEED; currentAnim = "walk-left"; player.anims.play(currentAnim, true); }
+        else if (cursors.right.isDown) { vx = SPEED; currentAnim = "walk-right"; player.anims.play(currentAnim, true); }
+        else if (cursors.up.isDown) { vy = -SPEED; currentAnim = "walk-up"; if (vx === 0) player.anims.play(currentAnim, true); }
+        else if (cursors.down.isDown) { vy = SPEED; currentAnim = "walk-down"; if (vx === 0) player.anims.play(currentAnim, true); }
 
-        if (vx !== 0 && vy !== 0) {
-            const factor = Math.SQRT1_2; vx *= factor; vy *= factor;
-        }
+        if (vx !== 0 && vy !== 0) { const factor = Math.SQRT1_2; vx *= factor; vy *= factor; }
 
         player.setVelocity(vx, vy);
 
-        if (vx === 0 && vy === 0) {
-            player.anims.stop();
-            currentAnim = '';
-        }
+        if (vx === 0 && vy === 0) { player.anims.stop(); currentAnim = ''; }
 
         if (ws && ws.readyState === WebSocket.OPEN) {
             if (player.x !== lastMoveData.x || player.y !== lastMoveData.y || currentAnim !== lastMoveData.anim) {
@@ -204,7 +182,6 @@ export const initializeGame = (spaceId: string, mapData: MapData, ws:WebSocket )
     }
 
     return () => {
-        if (ws) ws.close(); 
         game.destroy(true);
     }
 }
