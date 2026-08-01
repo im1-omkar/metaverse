@@ -12,6 +12,7 @@ const Page = () => {
     const { fetchInitialState, isLoading, error, mapData } = useGameStore();
     const gameInitialized = useRef(false);
     const stream = useMediaStore((state) => state.stream)
+    const currentPlayer = useMediaStore((state)=> state.currentPlayer)
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080";
 
     const wsRef = useRef<WebSocket | null>(null);
@@ -71,7 +72,11 @@ const Page = () => {
                 gameInitialized.current = true;
                 const { initializeGame } = await import("@/components/MainScene");
 
-                cleanupFn = initializeGame(spaceId, mapData, (attachWsFunction) => {
+                if(!currentPlayer){
+                    //add some good logic later to handle this case
+                    return;
+                }
+                cleanupFn = initializeGame(spaceId, mapData, currentPlayer ,(attachWsFunction) => {
                     setWsSetter(() => attachWsFunction);
                 });
             }
@@ -88,7 +93,7 @@ const Page = () => {
     useEffect(() => {
         if (!wsSetter) return;
 
-        const ws = new WebSocket(`${wsUrl}?spaceId=${spaceId}`);
+        const ws = new WebSocket(`${wsUrl}?spaceId=${spaceId}&sprite=${currentPlayer}`);
         wsRef.current = ws;
 
         wsSetter(ws);

@@ -31,6 +31,30 @@ const HARDCODED_INITIAL_STATE = {
             }
         },
         {
+            name: 'ginny',
+            url: '../assets/sprites/ginny.png',
+            configs: {
+                frameWidth: 1664 / 52,
+                frameHeight: 48,
+            }
+        },
+        {
+            name: 'hermoine',
+            url: '../assets/sprites/hermoine.png',
+            configs: {
+                frameWidth: 1664 / 52,
+                frameHeight: 48,
+            }
+        },
+        {
+            name: 'ron',
+            url: '../assets/sprites/ron.png',
+            configs: {
+                frameWidth: 1664 / 52,
+                frameHeight: 48,
+            }
+        },
+        {
             name: 'all-tiles',
             url: '../assets/tiles/all-tiles.png',
             configs: {

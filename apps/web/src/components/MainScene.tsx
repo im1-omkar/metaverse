@@ -5,7 +5,8 @@ import { MapData } from "@/lib/store";
 export const initializeGame = (
     spaceId: string,
     mapData: MapData,
-    onGameReady: (attachWs: (socket: WebSocket) => void) => void 
+    currentPlayer: string, // 'harry', 'ginny', 'hermoine', or 'ron'
+    onGameReady: (attachWs: (socket: WebSocket) => void) => void
 ) => {
 
     let ws: WebSocket | null = null;
@@ -37,6 +38,9 @@ export const initializeGame = (
     let player: Phaser.Physics.Arcade.Sprite;
     let cursors: Phaser.Types.Input.Keyboard.CursorKeys;
 
+    // Array of all possible characters in the game
+    const ALL_CHARACTERS = ['harry', 'ginny', 'hermoine', 'ron'];
+
     function preload(this: Phaser.Scene) {
         if (mapData.images) {
             mapData.images.forEach((image) => {
@@ -53,7 +57,7 @@ export const initializeGame = (
     }
 
     function create(this: Phaser.Scene) {
-        const scene = this; 
+        const scene = this;
         walls = scene.physics.add.staticGroup();
         computers = scene.physics.add.staticGroup();
 
@@ -94,22 +98,35 @@ export const initializeGame = (
         computers.create(180, 460, 'computers', 2);
         computers.create(580, 460, 'computers', 3);
 
-        player = scene.physics.add.sprite(100, 290, 'harry');
+        // Render local player using their specific sprite
+        player = scene.physics.add.sprite(100, 290, currentPlayer);
         player.setBounce(0);
         player.setCollideWorldBounds(true);
 
-        scene.anims.create({ key: 'turn', frames: [{ key: 'harry', frame: 4 }], frameRate: 20 });
-        scene.anims.create({ key: "walk-down", frames: scene.anims.generateFrameNumbers("harry", { start: 43, end: 49 }), frameRate: 10, repeat: -1 });
-        scene.anims.create({ key: "walk-left", frames: scene.anims.generateFrameNumbers("harry", { start: 36, end: 41 }), frameRate: 10, repeat: -1 });
-        scene.anims.create({ key: "walk-right", frames: scene.anims.generateFrameNumbers("harry", { start: 24, end: 29 }), frameRate: 10, repeat: -1 });
-        scene.anims.create({ key: "walk-up", frames: scene.anims.generateFrameNumbers("harry", { start: 30, end: 35 }), frameRate: 10, repeat: -1 });
+        // Generate animations for EVERY character type, prefixed with their name
+        ALL_CHARACTERS.forEach((char) => {
+            scene.anims.create({ key: `${char}-turn`, frames: [{ key: char, frame: 4 }], frameRate: 20 });
+            scene.anims.create({ key: `${char}-walk-down`, frames: scene.anims.generateFrameNumbers(char, { start: 43, end: 49 }), frameRate: 10, repeat: -1 });
+            scene.anims.create({ key: `${char}-walk-left`, frames: scene.anims.generateFrameNumbers(char, { start: 36, end: 41 }), frameRate: 10, repeat: -1 });
+            scene.anims.create({ key: `${char}-walk-right`, frames: scene.anims.generateFrameNumbers(char, { start: 24, end: 29 }), frameRate: 10, repeat: -1 });
+            scene.anims.create({ key: `${char}-walk-up`, frames: scene.anims.generateFrameNumbers(char, { start: 30, end: 35 }), frameRate: 10, repeat: -1 });
+        });
 
         cursors = scene.input.keyboard!.createCursorKeys();
         scene.physics.add.collider(player, walls);
         scene.physics.add.collider(player, computers);
 
         onGameReady((socket: WebSocket) => {
-            ws = socket; 
+            ws = socket;
+
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({
+                    type: 'join', // or 'init' / 'spawn' depending on your backend logic
+                    x: Math.round(player.x),
+                    y: Math.round(player.y),
+                    sprite: currentPlayer
+                }));
+            }
 
             ws.addEventListener('message', (event) => {
                 const data = JSON.parse(event.data);
@@ -127,6 +144,7 @@ export const initializeGame = (
                     case 'player_moved':
                         if (otherPlayers[data.id]) {
                             otherPlayers[data.id].setPosition(data.x, data.y);
+                            // The anim string now includes the character type (e.g., 'ron-walk-down')
                             if (data.anim) {
                                 otherPlayers[data.id].anims.play(data.anim, true);
                             } else {
@@ -146,7 +164,10 @@ export const initializeGame = (
     }
 
     function addOtherPlayer(scene: Phaser.Scene, id: string, playerInfo: any) {
-        const sprite = scene.physics.add.sprite(playerInfo.x, playerInfo.y, 'harry');
+        // Look for the sprite type sent from the server. Default to 'harry' if missing.
+        const spriteType = playerInfo.sprite || 'harry';
+
+        const sprite = scene.physics.add.sprite(playerInfo.x, playerInfo.y, spriteType);
         sprite.setCollideWorldBounds(true);
         otherPlayers[id] = sprite;
     }
@@ -157,10 +178,11 @@ export const initializeGame = (
         let vy = 0;
         let currentAnim = '';
 
-        if (cursors.left.isDown) { vx = -SPEED; currentAnim = "walk-left"; player.anims.play(currentAnim, true); }
-        else if (cursors.right.isDown) { vx = SPEED; currentAnim = "walk-right"; player.anims.play(currentAnim, true); }
-        else if (cursors.up.isDown) { vy = -SPEED; currentAnim = "walk-up"; if (vx === 0) player.anims.play(currentAnim, true); }
-        else if (cursors.down.isDown) { vy = SPEED; currentAnim = "walk-down"; if (vx === 0) player.anims.play(currentAnim, true); }
+        // Prefix local animations with the currentPlayer string
+        if (cursors.left.isDown) { vx = -SPEED; currentAnim = `${currentPlayer}-walk-left`; player.anims.play(currentAnim, true); }
+        else if (cursors.right.isDown) { vx = SPEED; currentAnim = `${currentPlayer}-walk-right`; player.anims.play(currentAnim, true); }
+        else if (cursors.up.isDown) { vy = -SPEED; currentAnim = `${currentPlayer}-walk-up`; if (vx === 0) player.anims.play(currentAnim, true); }
+        else if (cursors.down.isDown) { vy = SPEED; currentAnim = `${currentPlayer}-walk-down`; if (vx === 0) player.anims.play(currentAnim, true); }
 
         if (vx !== 0 && vy !== 0) { const factor = Math.SQRT1_2; vx *= factor; vy *= factor; }
 

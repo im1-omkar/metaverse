@@ -5,16 +5,14 @@ import { randomUUID } from 'crypto';
 const PORT = 8080;
 const wss = new WebSocketServer({ port: PORT });
 
-
-
 const spaces: Record<string, Record<string, any>> = {};
 
 wss.on('connection', (ws: WebSocket, req) => {
-    
+
     const { query } = parse(req.url || '', true);
     const spaceId = query.spaceId as string;
+    const sprite = query.sprite as string || 'harry'; // NEW: Get the sprite from the URL
 
-    
     if (!spaceId) {
         ws.close(1008, "spaceId is required");
         return;
@@ -22,27 +20,26 @@ wss.on('connection', (ws: WebSocket, req) => {
 
     const playerId = randomUUID();
 
-    
     if (!spaces[spaceId]) {
         spaces[spaceId] = {};
     }
 
-    
     spaces[spaceId][playerId] = {
-        ws: ws,      
-        x: 100,      
-        y: 290,      
-        anim: ''
+        ws: ws,
+        x: 100,
+        y: 290,
+        anim: '',
+        sprite: sprite // NEW: Save the sprite in the server state
     };
 
-    console.log(`[${spaceId}] Player ${playerId} joined.`);
+    console.log(`[${spaceId}] Player ${playerId} (${sprite}) joined.`); // Helpful for debugging
 
-    
-    
-    const playersList: Record<string, { x: number, y: number, anim: string }> = {};
+    // NEW: Update the typescript type to include sprite
+    const playersList: Record<string, { x: number, y: number, anim: string, sprite: string }> = {};
     for (const id in spaces[spaceId]) {
         const p = spaces[spaceId][id];
-        playersList[id] = { x: p.x, y: p.y, anim: p.anim };
+        // NEW: Include the sprite in the init list
+        playersList[id] = { x: p.x, y: p.y, anim: p.anim, sprite: p.sprite };
     }
 
     ws.send(JSON.stringify({
@@ -51,27 +48,24 @@ wss.on('connection', (ws: WebSocket, req) => {
         players: playersList
     }));
 
-    
     broadcastToSpace(spaceId, playerId, {
         type: 'player_joined',
         id: playerId,
-        player: { x: 100, y: 290, anim: '' }
+        // NEW: Tell everyone else which sprite this new player is
+        player: { x: 100, y: 290, anim: '', sprite: sprite }
     });
 
-    
     ws.on('message', (message) => {
         try {
             const data = JSON.parse(message.toString());
 
             if (data.type === 'move') {
-                
                 const player = spaces[spaceId][playerId];
                 if (player) {
                     player.x = data.x;
                     player.y = data.y;
                     player.anim = data.anim;
 
-                    
                     broadcastToSpace(spaceId, playerId, {
                         type: 'player_moved',
                         id: playerId,
@@ -84,12 +78,10 @@ wss.on('connection', (ws: WebSocket, req) => {
             else if (data.type === 'offer' || data.type === 'answer' || data.type === 'ice-candidate') {
                 const targetId = data.targetId;
 
-                // If the target player exists in this space, forward the message directly to them
                 if (targetId && spaces[spaceId][targetId]) {
                     const targetWs = spaces[spaceId][targetId].ws;
 
                     if (targetWs.readyState === WebSocket.OPEN) {
-                        // We send the exact same data payload through
                         targetWs.send(JSON.stringify(data));
                     }
                 }
@@ -99,21 +91,16 @@ wss.on('connection', (ws: WebSocket, req) => {
         }
     });
 
-    
     ws.on('close', () => {
         if (spaces[spaceId] && spaces[spaceId][playerId]) {
             console.log(`[${spaceId}] Player ${playerId} left.`);
-
-            
             delete spaces[spaceId][playerId];
 
-            
             broadcastToSpace(spaceId, playerId, {
                 type: 'player_left',
                 id: playerId
             });
 
-            
             if (Object.keys(spaces[spaceId]).length === 0) {
                 console.log(`[${spaceId}] Space empty. Closing room.`);
                 delete spaces[spaceId];
@@ -121,7 +108,6 @@ wss.on('connection', (ws: WebSocket, req) => {
         }
     });
 });
-
 
 function broadcastToSpace(spaceId: string, excludePlayerId: string, payload: any) {
     const space = spaces[spaceId];
@@ -139,4 +125,4 @@ function broadcastToSpace(spaceId: string, excludePlayerId: string, payload: any
     }
 }
 
-console.log(' WebSocket server is running on PORT : 8080')
+console.log('WebSocket server is running on PORT : 8080');
