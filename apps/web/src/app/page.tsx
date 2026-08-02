@@ -81,17 +81,17 @@ export default function LandingPage() {
         throw new Error(data.error || 'Authentication failed');
       }
 
-      // Store the token and user data
       localStorage.setItem('token', data.token);
       localStorage.setItem('metaverse_user', JSON.stringify(data.user));
 
       setShowModal(false);
 
-      // Redirect to the dashboard
       window.location.href = '/dashboard';
 
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      if(err instanceof Error){
+        console.log(err.message);
+      }
     } finally {
       setLoading(false);
     }

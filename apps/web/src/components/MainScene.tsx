@@ -119,13 +119,20 @@ export const initializeGame = (
         onGameReady((socket: WebSocket) => {
             ws = socket;
 
+            const joinPayload = JSON.stringify({
+                type: 'join',
+                x: Math.round(player.x),
+                y: Math.round(player.y),
+                sprite: currentPlayer
+            });
+
             if (ws.readyState === WebSocket.OPEN) {
-                ws.send(JSON.stringify({
-                    type: 'join', // or 'init' / 'spawn' depending on your backend logic
-                    x: Math.round(player.x),
-                    y: Math.round(player.y),
-                    sprite: currentPlayer
-                }));
+                ws.send(joinPayload);
+            } else {
+                ws.addEventListener('open', () => {
+                    if(!ws) return;
+                    ws.send(joinPayload);
+                });
             }
 
             ws.addEventListener('message', (event) => {

@@ -41,15 +41,22 @@ export default function Page() {
 
   useEffect(() => {
     const getMedia = async () => {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
-      })
+      try{
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true,
+        })
 
-      setStream(stream)
+        setStream(stream)
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream
+        }
+      }
+      catch(err){
+        if(err instanceof Error){
+          console.log(err.message);
+        }
       }
     }
 

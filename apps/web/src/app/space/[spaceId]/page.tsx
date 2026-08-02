@@ -16,8 +16,13 @@ const Page = () => {
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080";
     const router = useRouter();
 
-    const wsRef = useRef<WebSocket | null>(null);
+    const streamRef = useRef(stream);
+    useEffect(()=>{
+        streamRef.current = stream;
+    },[stream])
 
+    const wsRef = useRef<WebSocket | null>(null);
+    
     const [wsSetter, setWsSetter] = useState<((socket: WebSocket) => void) | null>(null);
 
     //  WEBRTC STATEs
@@ -71,19 +76,24 @@ const Page = () => {
     }, [spaceId, fetchInitialState]);
 
     useEffect(() => {
-        let cleanupFn: () => void;
+        let cleanupFn: (() => void) | undefined;
+        let isMounted = true; // 1. Add a flag to track if we are still on the page
 
         async function init() {
             if (!isLoading && mapData && !gameInitialized.current) {
                 gameInitialized.current = true;
+
+                // This takes time! The user might leave the page while this is loading.
                 const { initializeGame } = await import("@/components/MainScene");
 
-                if(!currentPlayer){
-                    //add some good logic later to handle this case
+                if (!isMounted || !currentPlayer) { // this is added to immediately stop if user left while game is loading
                     return;
                 }
-                cleanupFn = initializeGame(spaceId, mapData, currentPlayer ,(attachWsFunction) => {
-                    setWsSetter(() => attachWsFunction);
+
+                cleanupFn = initializeGame(spaceId, mapData, currentPlayer, (attachWsFunction) => {
+                    if (isMounted) {
+                        setWsSetter(() => attachWsFunction);
+                    }
                 });
             }
         }
@@ -91,10 +101,14 @@ const Page = () => {
         init();
 
         return () => {
-            if (cleanupFn) cleanupFn();
+            isMounted = false; // 3. Mark as unmounted as soon as the user leaves
+
+            if (cleanupFn) {
+                cleanupFn(); // Destroy the game only if it was successfully created
+            }
             gameInitialized.current = false;
         };
-    }, [isLoading, mapData, spaceId]);
+    }, [isLoading, mapData, spaceId, currentPlayer]); // Make sure currentPlayer is in the dependency array
 
     useEffect(() => {
         if (!wsSetter) return;
@@ -112,8 +126,8 @@ const Page = () => {
             peersRef.current[targetId] = pc;
 
             // Add our local audio/video tracks to the connection
-            if (stream) {
-                stream.getTracks().forEach((track) => pc.addTrack(track, stream));
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach((track) => pc.addTrack(track, streamRef.current!));
             }
 
             // Listen for local ICE candidates and send them to the remote peer
