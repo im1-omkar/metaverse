@@ -1,6 +1,6 @@
 'use client'
 import React, { useEffect, useRef, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { useGameStore } from '@/lib/store'
 import { useMediaStore } from '@/lib/mediaStore'
 import { Ellipsis, Mic, MicOff, Video, VideoOff } from 'lucide-react'
@@ -14,6 +14,7 @@ const Page = () => {
     const stream = useMediaStore((state) => state.stream)
     const currentPlayer = useMediaStore((state)=> state.currentPlayer)
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080";
+    const router = useRouter();
 
     const wsRef = useRef<WebSocket | null>(null);
 
@@ -52,9 +53,14 @@ const Page = () => {
     };
 
     useEffect(() => {
+        if (!stream || !currentPlayer) {
+            router.push(`/space/${spaceId}/setup`)
+        }
+    }, [stream, currentPlayer, spaceId])
+
+    useEffect(() => {
         if (videoRef.current && stream) {
             videoRef.current.srcObject = stream;
-            videoRef.current.play();
         }
     }, [stream, isLoading, error])
 
