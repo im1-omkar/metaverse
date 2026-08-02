@@ -106,7 +106,7 @@ export const initializeGame = (
         // Generate animations for EVERY character type, prefixed with their name
         ALL_CHARACTERS.forEach((char) => {
             scene.anims.create({ key: `${char}-turn`, frames: [{ key: char, frame: 4 }], frameRate: 20 });
-            scene.anims.create({ key: `${char}-walk-down`, frames: scene.anims.generateFrameNumbers(char, { start: 43, end: 49 }), frameRate: 10, repeat: -1 });
+            scene.anims.create({ key: `${char}-walk-down`, frames: scene.anims.generateFrameNumbers(char, { start: 43, end: 48 }), frameRate: 10, repeat: -1 });
             scene.anims.create({ key: `${char}-walk-left`, frames: scene.anims.generateFrameNumbers(char, { start: 36, end: 41 }), frameRate: 10, repeat: -1 });
             scene.anims.create({ key: `${char}-walk-right`, frames: scene.anims.generateFrameNumbers(char, { start: 24, end: 29 }), frameRate: 10, repeat: -1 });
             scene.anims.create({ key: `${char}-walk-up`, frames: scene.anims.generateFrameNumbers(char, { start: 30, end: 35 }), frameRate: 10, repeat: -1 });
