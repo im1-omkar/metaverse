@@ -1,5 +1,5 @@
 'use client'
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 export default function LandingPage() {
   const [showModal, setShowModal] = useState(false);
@@ -11,6 +11,44 @@ export default function LandingPage() {
   const [displayName, setDisplayName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        setIsCheckingAuth(false);
+        return;
+      }
+
+      try {
+        const API_BASE_URL =
+          process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/users";
+
+        const res = await fetch(`${API_BASE_URL}/me`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (res.ok) {
+          setIsAuthenticated(true);
+        } else {
+          localStorage.removeItem("token");
+          localStorage.removeItem("metaverse_user");
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsCheckingAuth(false);
+      }
+    };
+
+    checkAuth();
+  }, []);
 
   const toggleModal = (signup = false) => {
     setIsSignUp(signup);
@@ -44,7 +82,7 @@ export default function LandingPage() {
       }
 
       // Store the token and user data
-      localStorage.setItem('metaverse_token', data.token);
+      localStorage.setItem('token', data.token);
       localStorage.setItem('metaverse_user', JSON.stringify(data.user));
 
       setShowModal(false);
@@ -95,18 +133,34 @@ export default function LandingPage() {
             NEXUS_WORLD
           </div>
           <div className="space-x-4 flex">
-            <button
-              onClick={() => toggleModal(false)}
-              className="text-[10px] md:text-xs px-4 py-3 hover:text-blue-400 uppercase"
-            >
-              [ Login ]
-            </button>
-            <button
-              onClick={() => toggleModal(true)}
-              className="retro-button text-[10px] md:text-xs px-4 py-3 text-black uppercase"
-            >
-              Register
-            </button>
+            {isCheckingAuth ? (
+              <div className="text-[10px] md:text-xs uppercase">
+                Checking...
+              </div>
+            ) : isAuthenticated ? (
+              <button
+                onClick={() => (window.location.href = "/dashboard")}
+                className="retro-button text-[10px] md:text-xs px-4 py-3 text-black uppercase"
+              >
+                Go To Space
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => toggleModal(false)}
+                  className="text-[10px] md:text-xs px-4 py-3 hover:text-blue-400 uppercase"
+                >
+                  [ Login ]
+                </button>
+
+                <button
+                  onClick={() => toggleModal(true)}
+                  className="retro-button text-[10px] md:text-xs px-4 py-3 text-black uppercase"
+                >
+                  Register
+                </button>
+              </>
+            )}
           </div>
         </nav>
 
@@ -123,10 +177,16 @@ export default function LandingPage() {
               CONNECT TO THE MULTIPLAYER SERVER. COLLABORATE, BUILD YOUR DESK, AND INTERACT IN REAL-TIME.
             </p>
             <button
-              onClick={() => toggleModal(true)}
+              onClick={() => {
+                if (isAuthenticated) {
+                  window.location.href = "/dashboard";
+                } else {
+                  toggleModal(true);
+                }
+              }}
               className="retro-button text-xs md:text-sm px-8 py-5 text-black uppercase"
             >
-              START GAME
+              {isAuthenticated ? "GO TO SPACE" : "START GAME"}
             </button>
           </div>
         </main>

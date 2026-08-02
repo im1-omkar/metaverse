@@ -1,21 +1,58 @@
 'use client'
-import React from 'react'
+
+import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from "next/image";
+import Image from 'next/image'
 
 const DashboardPage = () => {
    const router = useRouter()
+   const API_URL =
+      process.env.NEXT_PUBLIC_HTTP_URL || 'http://localhost:3001'
 
-   // Array to hold our space data. 
-   // Currently, only the first one is active.
+   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+
+   useEffect(() => {
+      const checkAuth = async () => {
+         const token = localStorage.getItem('token')
+
+         if (!token) {
+            router.replace('/')
+            setIsCheckingAuth(false)
+            return
+         }
+
+         try {
+            const res = await fetch(`${API_URL}/api/users/me`, {
+               headers: {
+                  Authorization: `Bearer ${token}`,
+               },
+            })
+
+            if (!res.ok) {
+               localStorage.removeItem('token')
+               router.replace('/')
+               return
+            }
+         } catch (err) {
+            console.error(err)
+            router.replace('/')
+         } finally {
+            setIsCheckingAuth(false)
+         }
+      }
+
+      checkAuth()
+   }, [API_URL, router])
+
    const spaces = [
       {
          id: '123',
          name: 'Main Office',
-         description: 'Your primary workspace. Collaborate and build in real-time.',
-         imgSrc: '/assets/spaceImg/office123.png', 
+         description:
+            'Your primary workspace. Collaborate and build in real-time.',
+         imgSrc: '/assets/spaceImg/office123.png',
          isActive: true,
-         redirectUrl: '/space/123/setup'
+         redirectUrl: '/space/123/setup',
       },
       {
          id: '124',
@@ -23,7 +60,7 @@ const DashboardPage = () => {
          description: 'Secondary space for large team meetings. (Coming Soon)',
          imgSrc: '/assets/spaceImg/comingSoon.png',
          isActive: false,
-         redirectUrl: '#'
+         redirectUrl: '#',
       },
       {
          id: '125',
@@ -31,18 +68,24 @@ const DashboardPage = () => {
          description: 'Hangout area for casual interactions. (Coming Soon)',
          imgSrc: '/assets/spaceImg/comingSoon.png',
          isActive: false,
-         redirectUrl: '#'
-      }
+         redirectUrl: '#',
+      },
    ]
 
+   if (isCheckingAuth) {
+      return (
+         <div className="min-h-screen flex items-center justify-center bg-[#9ca3af] font-mono">
+            <div className="text-2xl font-bold animate-pulse">
+               Authenticating...
+            </div>
+         </div>
+      )
+   }
+
    return (
-      // Background matching the landing page
       <div className="min-h-screen bg-[#9ca3af] flex flex-col items-center justify-center p-4 md:p-8 font-mono">
-
-         {/* Main Retro Container */}
          <div className="relative bg-white border-[6px] border-blue-600 p-8 max-w-6xl w-full">
-
-            {/* Corner Decorators (Orange with purple/dark border to match your image) */}
+            {/* Corner Decorations */}
             <div className="absolute -top-3 -left-3 w-6 h-6 bg-[#d97706] border-4 border-purple-800"></div>
             <div className="absolute -top-3 -right-3 w-6 h-6 bg-[#d97706] border-4 border-purple-800"></div>
             <div className="absolute -bottom-3 -left-3 w-6 h-6 bg-[#d97706] border-4 border-purple-800"></div>
@@ -52,18 +95,19 @@ const DashboardPage = () => {
                Select Your Space
             </h1>
 
-            {/* Cards Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-               {spaces.map((space, index) => (
+               {spaces.map((space) => (
                   <div
                      key={space.id}
-                     onClick={() => space.isActive ? router.push(space.redirectUrl) : null}
+                     onClick={() => {
+                        if (!space.isActive) return
+                        router.push(space.redirectUrl)
+                     }}
                      className={`border-4 border-black p-4 flex flex-col items-center text-center transition-transform ${space.isActive
                            ? 'cursor-pointer hover:-translate-y-2 hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-white'
                            : 'opacity-70 cursor-not-allowed bg-gray-200'
                         }`}
                   >
-                     {/* Image Placeholder */}
                      <div className="relative w-full h-40 border-2 border-dashed border-gray-600 mb-6 overflow-hidden">
                         <Image
                            src={space.imgSrc}
@@ -86,7 +130,10 @@ const DashboardPage = () => {
                            Enter Space
                         </button>
                      ) : (
-                        <button className="bg-gray-400 border-2 border-gray-600 px-6 py-2 font-bold uppercase tracking-widest cursor-not-allowed text-gray-600">
+                        <button
+                           disabled
+                           className="bg-gray-400 border-2 border-gray-600 px-6 py-2 font-bold uppercase tracking-widest cursor-not-allowed text-gray-600"
+                        >
                            Locked
                         </button>
                      )}

@@ -7,6 +7,60 @@ const userRouter = express.Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-super-secret-jwt-key";
 
+userRouter.get("/me", async (req: express.Request, res: express.Response) => {
+    try {
+        const authHeader = req.headers.authorization;
+
+        if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            return res.status(401).json({
+                authenticated: false,
+                error: "Authorization token missing."
+            });
+        }
+
+        const token = authHeader.split(" ")[1];
+
+        if (!token) {
+            return res.status(401).json({
+                authenticated: false,
+                error: "Malformed authorization header."
+            });
+        }
+
+        const decoded = jwt.verify(token, JWT_SECRET) as unknown as { userId: string };
+
+        const user = await prisma.user.findUnique({
+            where: {
+                id: decoded.userId
+            },
+            select: {
+                id: true,
+                email: true,
+                displayName: true,
+                avatarSkin: true
+            }
+        });
+
+        if (!user) {
+            return res.status(401).json({
+                authenticated: false,
+                error: "User not found."
+            });
+        }
+
+        return res.status(200).json({
+            authenticated: true,
+            user
+        });
+
+    } catch (error) {
+        return res.status(401).json({
+            authenticated: false,
+            error: "Invalid or expired token."
+        });
+    }
+});
+
 
 userRouter.post("/signup", async (req: express.Request, res: express.Response) => {
     try {
