@@ -12,17 +12,17 @@ const Page = () => {
     const { fetchInitialState, isLoading, error, mapData } = useGameStore();
     const gameInitialized = useRef(false);
     const stream = useMediaStore((state) => state.stream)
-    const currentPlayer = useMediaStore((state)=> state.currentPlayer)
+    const currentPlayer = useMediaStore((state) => state.currentPlayer)
     const wsUrl = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8080";
     const router = useRouter();
 
     const streamRef = useRef(stream);
-    useEffect(()=>{
+    useEffect(() => {
         streamRef.current = stream;
-    },[stream])
+    }, [stream])
 
     const wsRef = useRef<WebSocket | null>(null);
-    
+
     const [wsSetter, setWsSetter] = useState<((socket: WebSocket) => void) | null>(null);
 
     //  WEBRTC STATEs
@@ -77,16 +77,15 @@ const Page = () => {
 
     useEffect(() => {
         let cleanupFn: (() => void) | undefined;
-        let isMounted = true; // 1. Add a flag to track if we are still on the page
+        let isMounted = true;
 
         async function init() {
             if (!isLoading && mapData && !gameInitialized.current) {
                 gameInitialized.current = true;
 
-                // This takes time! The user might leave the page while this is loading.
                 const { initializeGame } = await import("@/components/MainScene");
 
-                if (!isMounted || !currentPlayer) { // this is added to immediately stop if user left while game is loading
+                if (!isMounted || !currentPlayer) {
                     return;
                 }
 
@@ -101,14 +100,14 @@ const Page = () => {
         init();
 
         return () => {
-            isMounted = false; // 3. Mark as unmounted as soon as the user leaves
+            isMounted = false;
 
             if (cleanupFn) {
-                cleanupFn(); // Destroy the game only if it was successfully created
+                cleanupFn();
             }
             gameInitialized.current = false;
         };
-    }, [isLoading, mapData, spaceId, currentPlayer]); // Make sure currentPlayer is in the dependency array
+    }, [isLoading, mapData, spaceId, currentPlayer]);
 
     useEffect(() => {
         if (!wsSetter) return;
@@ -120,29 +119,26 @@ const Page = () => {
 
         const createPeerConnection = (targetId: string) => {
             const pc = new RTCPeerConnection({
-                iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] // Public STUN server
+                iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
             });
 
             peersRef.current[targetId] = pc;
 
-            // Add our local audio/video tracks to the connection
             if (streamRef.current) {
                 streamRef.current.getTracks().forEach((track) => pc.addTrack(track, streamRef.current!));
             }
 
-            // Listen for local ICE candidates and send them to the remote peer
             pc.onicecandidate = (event) => {
                 if (event.candidate) {
                     ws.send(JSON.stringify({
                         type: 'ice-candidate',
-                        targetId: targetId,         // Who this is going to
-                        senderId: myIdRef.current,  // Who this is from
+                        targetId: targetId,
+                        senderId: myIdRef.current,
                         candidate: event.candidate
                     }));
                 }
             };
 
-            // Listen for the remote peer's audio/video tracks
             pc.ontrack = (event) => {
                 setRemoteStreams((prev) => ({
                     ...prev,
@@ -158,26 +154,23 @@ const Page = () => {
 
             switch (data.type) {
                 case 'init':
-                    // Store our own ID when we first connect
                     myIdRef.current = data.id;
                     break;
 
                 case 'player_joined':
-                    // A new player joined! We are the caller. Create an offer.
                     const pcOffer = createPeerConnection(data.id);
                     const offer = await pcOffer.createOffer();
                     await pcOffer.setLocalDescription(offer);
 
                     ws.send(JSON.stringify({
                         type: 'offer',
-                        targetId: data.id,         // Send to the new player
-                        senderId: myIdRef.current, // Let them know who is calling
+                        targetId: data.id,
+                        senderId: myIdRef.current,
                         sdp: pcOffer.localDescription
                     }));
                     break;
 
                 case 'offer':
-                    // Someone called us! Create an answer.
                     const pcAnswer = createPeerConnection(data.senderId);
                     await pcAnswer.setRemoteDescription(new RTCSessionDescription(data.sdp));
 
@@ -193,7 +186,6 @@ const Page = () => {
                     break;
 
                 case 'answer':
-                    // The person we called responded! Set their answer.
                     const pc = peersRef.current[data.senderId];
                     if (pc) {
                         await pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
@@ -201,7 +193,6 @@ const Page = () => {
                     break;
 
                 case 'ice-candidate':
-                    // The other person's browser found a network route. Add it.
                     const peerConnection = peersRef.current[data.senderId];
                     if (peerConnection && data.candidate) {
                         await peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
@@ -209,7 +200,6 @@ const Page = () => {
                     break;
 
                 case 'player_left':
-                    // Clean up video stream and connection when someone leaves
                     if (peersRef.current[data.id]) {
                         peersRef.current[data.id].close();
                         delete peersRef.current[data.id];
@@ -232,61 +222,78 @@ const Page = () => {
         }
     }, [wsSetter, spaceId, wsUrl]);
 
-    if (isLoading) return <div className="p-10 text-white">Loading Space Data...</div>;
-    if (error) return <div className="p-10 text-red-500">Error: {error}</div>;
+    if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white font-mono text-xl animate-pulse">Loading Space...</div>;
+    if (error) return <div className="min-h-screen flex items-center justify-center bg-gray-900 text-red-500 font-mono text-xl">Error: {error}</div>;
 
-    return<div className='flex h-screen w-screen'>
-        <div className='flex-5 w-full h-screen flex flex-col justify-around items-center  '>
-            <div className='text-6xl'>The Metaverse</div>
-            <div id="game-container" />
-            <div className='flex gap-4 p-4'>
+    return (
+        <div className="relative w-screen h-screen overflow-hidden bg-gray-900">
+
+            {/* 1. FULL SCREEN GAME LAYER */}
+            <div id="game-container" className="absolute inset-0 z-0" />
+
+            {/* Title (Optional, just floating top-left so it doesn't break the layout) */}
+            <div className="absolute top-6 left-6 z-10 pointer-events-none">
+                <h1 className="text-2xl md:text-4xl text-white font-black drop-shadow-[2px_2px_0px_#000] tracking-wider font-mono">
+                    MAIN OFFICE
+                </h1>
+            </div>
+
+            {/* 2. FLOATING VIDEOS LAYER (TOP RIGHT) */}
+            <div className="absolute top-6 right-6 z-10 flex flex-col items-end space-y-4 max-h-[80vh] overflow-y-auto p-2 pointer-events-auto">
+
+                {/* Local Video */}
+                <div className="relative w-40 md:w-56 rounded-xl overflow-hidden border-4 border-gray-800 shadow-[4px_4px_0px_rgba(0,0,0,0.5)] bg-gray-900 transition-transform hover:scale-105">
+                    <div className="absolute bottom-2 left-2 bg-black/60 px-2 py-1 rounded text-[10px] md:text-xs text-white font-bold z-10">
+                        You
+                    </div>
+                    <video ref={videoRef} autoPlay playsInline muted className="w-full aspect-video object-cover" />
+                </div>
+
+                {/* Remote Videos */}
+                {Object.entries(remoteStreams).map(([peerId, remoteStream]) => (
+                    <div key={peerId} className="relative w-40 md:w-56 rounded-xl overflow-hidden border-4 border-gray-800 shadow-[4px_4px_0px_rgba(0,0,0,0.5)] bg-gray-900 transition-transform hover:scale-105">
+                        <div className="absolute bottom-2 left-2 bg-black/60 px-2 py-1 rounded text-[10px] md:text-xs text-white font-bold z-10">
+                            Player: {peerId.slice(0, 5)}...
+                        </div>
+                        <video
+                            autoPlay
+                            playsInline
+                            className="w-full aspect-video object-cover"
+                            ref={(videoElement) => {
+                                if (videoElement && videoElement.srcObject !== remoteStream) {
+                                    videoElement.srcObject = remoteStream;
+                                }
+                            }}
+                        />
+                    </div>
+                ))}
+            </div>
+
+            {/* 3. FLOATING CONTROLS (BOTTOM CENTER) */}
+            <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 z-20 flex gap-4 bg-gray-900/80 backdrop-blur-sm p-3 rounded-full border-4 border-gray-700 shadow-[0_8px_30px_rgb(0,0,0,0.5)] pointer-events-auto">
                 <button
                     onClick={toggleAudio}
-                    className={`px-6 py-4 rounded-full font-bold text-white transition-colors duration-200 ${isAudioMuted ? 'bg-red-600 hover:bg-red-700' : 'bg-green-500 hover:bg-green-600'
+                    className={`p-4 rounded-full font-bold text-white transition-all duration-200 hover:-translate-y-1 ${isAudioMuted ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'
                         }`}
                 >
-                    {isAudioMuted ? <MicOff/> : <Mic/> }
+                    {isAudioMuted ? <MicOff size={24} /> : <Mic size={24} />}
                 </button>
 
                 <button
                     onClick={toggleVideo}
-                    className={`px-6 py-4 rounded-full font-bold text-white transition-colors duration-200 ${isVideoOff ? 'bg-red-600 hover:bg-red-700' : 'bg-green-500 hover:bg-green-600'
+                    className={`p-4 rounded-full font-bold text-white transition-all duration-200 hover:-translate-y-1 ${isVideoOff ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'
                         }`}
                 >
-                    {isVideoOff ? <VideoOff/> : <Video/>}
+                    {isVideoOff ? <VideoOff size={24} /> : <Video size={24} />}
                 </button>
 
-                {/* Placeholder for the 3rd button if needed */}
-                <div className='bg-gray-500 h-14 w-20 rounded-full flex items-center justify-center text-white'>
-                    <Ellipsis/>
-                </div>
+                <button className="p-4 rounded-full bg-gray-600 hover:bg-gray-500 transition-all duration-200 hover:-translate-y-1 text-white flex items-center justify-center">
+                    <Ellipsis size={24} />
+                </button>
             </div>
-        </div>
-        {/* VIDEO SIDEBAR */}
-        <div className='flex-1 flex flex-col items-center m-5 space-y-4 overflow-y-auto'>
-            <div className="w-full text-center font-bold">You</div>
-            <video ref={videoRef} autoPlay playsInline muted className='w-full rounded-lg bg-gray-800' />
 
-            {/* RENDER ALL REMOTE STREAMS AUTOMATICALLY */}
-            {Object.entries(remoteStreams).map(([peerId, remoteStream]) => (
-                <div key={peerId} className="w-full">
-                    <div className="w-full text-center font-bold text-sm">Player: {peerId.slice(0, 5)}...</div>
-                    <video
-                        autoPlay
-                        playsInline
-                        className='w-full rounded-lg bg-gray-800'
-                        ref={(videoElement) => {
-                            // Assign the remote stream directly to the video element
-                            if (videoElement && videoElement.srcObject !== remoteStream) {
-                                videoElement.srcObject = remoteStream;
-                            }
-                        }}
-                    />
-                </div>
-            ))}
         </div>
-    </div>
-    
+    )
 }
 
 export default Page

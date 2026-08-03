@@ -5,7 +5,7 @@ import { MapData } from "@/lib/store";
 export const initializeGame = (
     spaceId: string,
     mapData: MapData,
-    currentPlayer: string, // 'harry', 'ginny', 'hermoine', or 'ron'
+    currentPlayer: string,
     onGameReady: (attachWs: (socket: WebSocket) => void) => void
 ) => {
 
@@ -13,12 +13,16 @@ export const initializeGame = (
 
     const config: Phaser.Types.Core.GameConfig = {
         type: Phaser.AUTO,
-        width: mapData.width || 800,
-        height: mapData.height || 600,
-        parent: 'game-container',
+        // Using Scale Manager to make the game occupy the full parent container
+        scale: {
+            mode: Phaser.Scale.RESIZE,
+            parent: 'game-container',
+            width: '100%',
+            height: '100%'
+        },
         physics: mapData.physics || {
             default: 'arcade',
-            arcade: { gravity: { x: 0, y: 0 }, debug: true }
+            arcade: { gravity: { x: 0, y: 0 }, debug: false } // turned off debug for production look
         },
         scene: {
             preload: preload,
@@ -38,7 +42,6 @@ export const initializeGame = (
     let player: Phaser.Physics.Arcade.Sprite;
     let cursors: Phaser.Types.Input.Keyboard.CursorKeys;
 
-    // Array of all possible characters in the game
     const ALL_CHARACTERS = ['harry', 'ginny', 'hermoine', 'ron'];
 
     function preload(this: Phaser.Scene) {
@@ -98,12 +101,16 @@ export const initializeGame = (
         computers.create(180, 460, 'computers', 2);
         computers.create(580, 460, 'computers', 3);
 
-        // Render local player using their specific sprite
         player = scene.physics.add.sprite(100, 290, currentPlayer);
         player.setBounce(0);
         player.setCollideWorldBounds(true);
 
-        // Generate animations for EVERY character type, prefixed with their name
+        // --- CAMERA SETTINGS ---
+        // Tells the camera to zoom in and seamlessly follow the player around
+        scene.cameras.main.setZoom(1.8);
+        scene.cameras.main.startFollow(player, true, 0.08, 0.08);
+        // -----------------------
+
         ALL_CHARACTERS.forEach((char) => {
             scene.anims.create({ key: `${char}-turn`, frames: [{ key: char, frame: 4 }], frameRate: 20 });
             scene.anims.create({ key: `${char}-walk-down`, frames: scene.anims.generateFrameNumbers(char, { start: 43, end: 48 }), frameRate: 10, repeat: -1 });
@@ -130,7 +137,7 @@ export const initializeGame = (
                 ws.send(joinPayload);
             } else {
                 ws.addEventListener('open', () => {
-                    if(!ws) return;
+                    if (!ws) return;
                     ws.send(joinPayload);
                 });
             }
@@ -151,7 +158,6 @@ export const initializeGame = (
                     case 'player_moved':
                         if (otherPlayers[data.id]) {
                             otherPlayers[data.id].setPosition(data.x, data.y);
-                            // The anim string now includes the character type (e.g., 'ron-walk-down')
                             if (data.anim) {
                                 otherPlayers[data.id].anims.play(data.anim, true);
                             } else {
@@ -171,7 +177,6 @@ export const initializeGame = (
     }
 
     function addOtherPlayer(scene: Phaser.Scene, id: string, playerInfo: any) {
-        // Look for the sprite type sent from the server. Default to 'harry' if missing.
         const spriteType = playerInfo.sprite || 'harry';
 
         const sprite = scene.physics.add.sprite(playerInfo.x, playerInfo.y, spriteType);
@@ -185,7 +190,6 @@ export const initializeGame = (
         let vy = 0;
         let currentAnim = '';
 
-        // Prefix local animations with the currentPlayer string
         if (cursors.left.isDown) { vx = -SPEED; currentAnim = `${currentPlayer}-walk-left`; player.anims.play(currentAnim, true); }
         else if (cursors.right.isDown) { vx = SPEED; currentAnim = `${currentPlayer}-walk-right`; player.anims.play(currentAnim, true); }
         else if (cursors.up.isDown) { vy = -SPEED; currentAnim = `${currentPlayer}-walk-up`; if (vx === 0) player.anims.play(currentAnim, true); }

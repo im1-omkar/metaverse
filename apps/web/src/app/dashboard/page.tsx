@@ -6,10 +6,10 @@ import Image from 'next/image'
 
 const DashboardPage = () => {
    const router = useRouter()
-   const API_URL =
-      process.env.NEXT_PUBLIC_HTTP_URL || 'http://localhost:3001'
+   const API_URL = process.env.NEXT_PUBLIC_HTTP_URL || 'http://localhost:3001'
 
    const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+   const [userName, setUserName] = useState('GUEST')
 
    useEffect(() => {
       const checkAuth = async () => {
@@ -33,6 +33,16 @@ const DashboardPage = () => {
                router.replace('/')
                return
             }
+
+            // Fetch user info from local storage
+            const userStr = localStorage.getItem('metaverse_user')
+            if (userStr) {
+               const user = JSON.parse(userStr)
+               if (user.displayName) {
+                  setUserName(user.displayName)
+               }
+            }
+
          } catch (err) {
             console.error(err)
             router.replace('/')
@@ -44,12 +54,17 @@ const DashboardPage = () => {
       checkAuth()
    }, [API_URL, router])
 
+   const handleLogout = () => {
+      localStorage.removeItem('token')
+      localStorage.removeItem('metaverse_user')
+      router.replace('/')
+   }
+
    const spaces = [
       {
          id: '123',
          name: 'Main Office',
-         description:
-            'Your primary workspace. Collaborate and build in real-time.',
+         description: 'Your primary workspace. Collaborate and build in real-time.',
          imgSrc: '/assets/spaceImg/office123.png',
          isActive: true,
          redirectUrl: '/space/123/setup',
@@ -74,74 +89,168 @@ const DashboardPage = () => {
 
    if (isCheckingAuth) {
       return (
-         <div className="min-h-screen flex items-center justify-center bg-[#9ca3af] font-mono">
-            <div className="text-2xl font-bold animate-pulse">
-               Authenticating...
+         <div className="min-h-screen flex items-center justify-center bg-[#94a3b8] font-mono">
+            <style dangerouslySetInnerHTML={{ __html: `@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');` }} />
+            <div className="text-xl md:text-2xl font-bold animate-pulse text-white drop-shadow-[2px_2px_0px_#000]" style={{ fontFamily: "'Press Start 2P', cursive" }}>
+               AUTHENTICATING...
             </div>
          </div>
       )
    }
 
    return (
-      <div className="min-h-screen bg-[#9ca3af] flex flex-col items-center justify-center p-4 md:p-8 font-mono">
-         <div className="relative bg-white border-[6px] border-blue-600 p-8 max-w-6xl w-full">
-            {/* Corner Decorations */}
-            <div className="absolute -top-3 -left-3 w-6 h-6 bg-[#d97706] border-4 border-purple-800"></div>
-            <div className="absolute -top-3 -right-3 w-6 h-6 bg-[#d97706] border-4 border-purple-800"></div>
-            <div className="absolute -bottom-3 -left-3 w-6 h-6 bg-[#d97706] border-4 border-purple-800"></div>
-            <div className="absolute -bottom-3 -right-3 w-6 h-6 bg-[#d97706] border-4 border-purple-800"></div>
+      <>
+         <style dangerouslySetInnerHTML={{
+            __html: `
+            @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+            
+            .pixel-font {
+               font-family: 'Press Start 2P', cursive;
+               image-rendering: pixelated;
+            }
+            
+            /* Grid Background */
+            .bg-pixel-grid {
+               background-color: #94a3b8;
+               background-image: 
+               linear-gradient(to right, #64748b 1px, transparent 1px),
+               linear-gradient(to bottom, #64748b 1px, transparent 1px);
+               background-size: 40px 40px;
+            }
 
-            <h1 className="text-3xl font-black text-center mb-10 tracking-widest uppercase">
-               Select Your Space
-            </h1>
+            /* 3D Window/Wall */
+            .room-wall {
+               background-color: #e2e8f0;
+               border: 6px solid #1e3a8a; 
+               box-shadow: 
+               16px 16px 0px rgba(0, 0, 0, 0.2),
+               inset 4px 4px 0px rgba(255, 255, 255, 0.7), 
+               inset -4px -4px 0px rgba(0, 0, 0, 0.2);
+            }
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-               {spaces.map((space) => (
-                  <div
-                     key={space.id}
-                     onClick={() => {
-                        if (!space.isActive) return
-                        router.push(space.redirectUrl)
-                     }}
-                     className={`border-4 border-black p-4 flex flex-col items-center text-center transition-transform ${space.isActive
-                           ? 'cursor-pointer hover:-translate-y-2 hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] bg-white'
-                           : 'opacity-70 cursor-not-allowed bg-gray-200'
-                        }`}
+            /* 3D Card */
+            .retro-card {
+               background-color: #f8fafc;
+               border-top: 4px solid #ffffff;
+               border-left: 4px solid #ffffff;
+               border-right: 4px solid #475569;
+               border-bottom: 4px solid #475569;
+               transition: all 0.1s ease;
+               box-shadow: 6px 6px 0px rgba(0,0,0,0.8);
+            }
+            .retro-card:active {
+               border-top: 4px solid #475569;
+               border-left: 4px solid #475569;
+               border-right: 4px solid #ffffff;
+               border-bottom: 4px solid #ffffff;
+               transform: translate(4px, 4px);
+               box-shadow: 2px 2px 0px rgba(0,0,0,0.8);
+            }
+
+            /* 3D Retro Button */
+            .retro-button {
+               background-color: #cbd5e1;
+               border-top: 4px solid #ffffff;
+               border-left: 4px solid #ffffff;
+               border-right: 4px solid #475569;
+               border-bottom: 4px solid #475569;
+            }
+            .retro-card:hover .retro-button {
+               background-color: #94a3b8;
+            }
+         `}} />
+
+         <div className="min-h-screen bg-pixel-grid text-black pixel-font flex flex-col relative overflow-hidden selection:bg-blue-800 selection:text-white">
+
+            {/* Top Navigation Bar */}
+            <nav className="w-full px-6 py-4 flex justify-between items-center bg-neutral-900 text-white border-b-8 border-black shadow-xl z-10 relative">
+               <div className="text-sm md:text-xl text-blue-400 drop-shadow-[3px_3px_0px_#1e3a8a] tracking-wider">
+                  NEXUS_WORLD
+               </div>
+               <div className="text-[8px] md:text-xs text-amber-400 uppercase tracking-wider flex items-center gap-4">
+                  <span className="hidden md:inline-block border-2 border-amber-600 bg-amber-900/50 px-3 py-2">
+                     PLAYER: {userName}
+                  </span>
+                  <span className="md:hidden">
+                     {userName}
+                  </span>
+                  <button
+                     onClick={handleLogout}
+                     className="text-white hover:text-red-500 transition-colors"
                   >
-                     <div className="relative w-full h-40 border-2 border-dashed border-gray-600 mb-6 overflow-hidden">
-                        <Image
-                           src={space.imgSrc}
-                           alt={space.name}
-                           fill
-                           className="object-cover"
-                        />
-                     </div>
+                     [ LOGOUT ]
+                  </button>
+               </div>
+            </nav>
 
-                     <h2 className="text-xl font-bold mb-3 uppercase tracking-wider">
-                        {space.name}
-                     </h2>
+            {/* Main Content Area */}
+            <main className="flex-grow flex items-center justify-center p-4 md:p-8 z-10 relative">
+               <div className="relative room-wall p-8 md:p-12 max-w-6xl w-full">
 
-                     <p className="text-sm text-gray-800 mb-6 flex-grow font-semibold">
-                        {space.description}
-                     </p>
+                  {/* Corner Decorations */}
+                  <div className="absolute -top-3 -left-3 w-6 h-6 bg-amber-500 border-4 border-purple-800 shadow-[4px_4px_0px_rgba(0,0,0,0.3)]"></div>
+                  <div className="absolute -top-3 -right-3 w-6 h-6 bg-amber-500 border-4 border-purple-800 shadow-[4px_4px_0px_rgba(0,0,0,0.3)]"></div>
+                  <div className="absolute -bottom-3 -left-3 w-6 h-6 bg-amber-500 border-4 border-purple-800 shadow-[4px_4px_0px_rgba(0,0,0,0.3)]"></div>
+                  <div className="absolute -bottom-3 -right-3 w-6 h-6 bg-amber-500 border-4 border-purple-800 shadow-[4px_4px_0px_rgba(0,0,0,0.3)]"></div>
 
-                     {space.isActive ? (
-                        <button className="bg-[#cbd5e1] border-2 border-black px-6 py-2 font-bold uppercase tracking-widest hover:bg-[#94a3b8] transition-colors">
-                           Enter Space
-                        </button>
-                     ) : (
-                        <button
-                           disabled
-                           className="bg-gray-400 border-2 border-gray-600 px-6 py-2 font-bold uppercase tracking-widest cursor-not-allowed text-gray-600"
+                  <h1 className="text-xl md:text-3xl font-black text-center mb-12 tracking-widest uppercase drop-shadow-[2px_2px_0px_#94a3b8]">
+                     SELECT YOUR SPACE
+                  </h1>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10">
+                     {spaces.map((space) => (
+                        <div
+                           key={space.id}
+                           onClick={() => {
+                              if (!space.isActive) return
+                              router.push(space.redirectUrl)
+                           }}
+                           className={`p-4 flex flex-col items-center text-center ${space.isActive
+                                 ? 'retro-card cursor-pointer hover:-translate-y-2'
+                                 : 'border-4 border-gray-500 bg-gray-300 opacity-80 cursor-not-allowed shadow-[4px_4px_0px_rgba(0,0,0,0.4)]'
+                              }`}
                         >
-                           Locked
-                        </button>
-                     )}
+                           {/* Thumbnail Container */}
+                           <div className={`relative w-full h-40 border-4 mb-6 overflow-hidden ${space.isActive ? 'border-neutral-800' : 'border-gray-500 grayscale'
+                              }`}>
+                              <Image
+                                 src={space.imgSrc}
+                                 alt={space.name}
+                                 fill
+                                 className="object-cover"
+                              />
+                           </div>
+
+                           <h2 className={`text-xs md:text-sm font-bold mb-4 uppercase tracking-wider h-10 flex items-center justify-center ${space.isActive ? 'text-black' : 'text-gray-600'
+                              }`}>
+                              {space.name}
+                           </h2>
+
+                           <p className={`text-[8px] md:text-[10px] leading-5 mb-8 flex-grow ${space.isActive ? 'text-neutral-700' : 'text-gray-600'
+                              }`}>
+                              {space.description}
+                           </p>
+
+                           {/* Action Button */}
+                           {space.isActive ? (
+                              <button className="retro-button w-full px-4 py-4 text-[10px] font-bold uppercase tracking-widest text-black">
+                                 ENTER SPACE
+                              </button>
+                           ) : (
+                              <button
+                                 disabled
+                                 className="w-full bg-gray-400 border-t-4 border-l-4 border-gray-300 border-b-4 border-r-4 border-gray-500 px-4 py-4 text-[10px] font-bold uppercase tracking-widest cursor-not-allowed text-gray-600"
+                              >
+                                 LOCKED
+                              </button>
+                           )}
+                        </div>
+                     ))}
                   </div>
-               ))}
-            </div>
+               </div>
+            </main>
          </div>
-      </div>
+      </>
    )
 }
 
