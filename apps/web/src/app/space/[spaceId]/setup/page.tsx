@@ -41,7 +41,7 @@ export default function Page() {
 
   useEffect(() => {
     const getMedia = async () => {
-      try{
+      try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: true,
           audio: true,
@@ -53,8 +53,8 @@ export default function Page() {
           videoRef.current.srcObject = stream
         }
       }
-      catch(err){
-        if(err instanceof Error){
+      catch (err) {
+        if (err instanceof Error) {
           console.log(err.message);
         }
       }
@@ -72,58 +72,58 @@ export default function Page() {
   }
 
   return (
-    <div className="min-h-screen bg-[#b8b8b8] flex items-center justify-center">
+    <div className="min-h-screen bg-[#b8b8b8] flex items-center justify-center p-2 sm:p-4">
 
-      <div className="bg-[#f7f7f7] border-[6px] border-blue-700 shadow-xl w-[900px] p-8">
+      <div className="bg-[#f7f7f7] border-[6px] border-blue-700 shadow-xl w-full max-w-[900px] p-4 md:p-6 lg:p-8 max-h-[95vh] overflow-y-auto">
 
         <div className="text-center">
 
-          <p className="uppercase tracking-[0.35em] text-sm text-gray-600">
+          <p className="uppercase tracking-[0.2em] md:tracking-[0.35em] text-xs md:text-sm text-gray-600">
             Selected Wizard
           </p>
 
-          <h1 className="mt-2 text-5xl uppercase font-black tracking-widest">
+          <h1 className="mt-1 lg:mt-2 text-3xl md:text-4xl lg:text-5xl uppercase font-black tracking-widest">
             {current.id}
           </h1>
 
-          <div className="mt-3 inline-block px-4 py-1 border-2 border-green-700 bg-green-100 font-bold uppercase text-sm">
+          <div className="mt-2 lg:mt-3 inline-block px-3 py-1 lg:px-4 lg:py-1 border-2 border-green-700 bg-green-100 font-bold uppercase text-xs lg:text-sm">
             READY
           </div>
 
         </div>
 
-        <div className="mt-10 flex items-center justify-center gap-10">
+        <div className="mt-4 md:mt-6 lg:mt-10 flex items-center justify-center gap-4 md:gap-8 lg:gap-10">
 
           <button
             onClick={prev}
-            className="h-20 w-20 border-4 border-blue-700 bg-[#dce5f3] hover:scale-105 transition"
+            className="h-12 w-12 md:h-16 md:w-16 lg:h-20 lg:w-20 border-4 border-blue-700 bg-[#dce5f3] hover:scale-105 transition flex items-center justify-center shrink-0"
           >
-            <ChevronLeft className="h-10 w-10 mx-auto" />
+            <ChevronLeft className="h-6 w-6 md:h-8 md:w-8 lg:h-10 lg:w-10" />
           </button>
 
           <img
             src={current.image}
             alt={current.id}
-            className="h-[340px] object-contain select-none"
+            className="h-[180px] md:h-[240px] lg:h-[340px] object-contain select-none"
           />
 
           <button
             onClick={next}
-            className="h-20 w-20 border-4 border-blue-700 bg-[#dce5f3] hover:scale-105 transition"
+            className="h-12 w-12 md:h-16 md:w-16 lg:h-20 lg:w-20 border-4 border-blue-700 bg-[#dce5f3] hover:scale-105 transition flex items-center justify-center shrink-0"
           >
-            <ChevronRight className="h-10 w-10 mx-auto" />
+            <ChevronRight className="h-6 w-6 md:h-8 md:w-8 lg:h-10 lg:w-10" />
           </button>
 
         </div>
 
-        <div className="flex justify-center gap-6 mt-10">
+        <div className="flex flex-wrap justify-center gap-3 md:gap-4 lg:gap-6 mt-6 md:mt-8 lg:mt-10">
 
           {players.map((player, index) => (
 
             <button
               key={player.id}
               onClick={() => setSelected(index)}
-              className={`border-4 p-2 transition-all
+              className={`border-4 p-1 md:p-2 transition-all
 
                 ${selected === index
                   ? 'border-blue-700 bg-blue-100 scale-110'
@@ -134,10 +134,10 @@ export default function Page() {
 
               <img
                 src={player.image}
-                className="h-20 w-20 object-contain"
+                className="h-12 w-12 md:h-16 md:w-16 lg:h-20 lg:w-20 object-contain"
               />
 
-              <p className="uppercase font-bold text-sm mt-2">
+              <p className="uppercase font-bold text-[10px] md:text-xs lg:text-sm mt-1 lg:mt-2">
                 {player.id}
               </p>
 
@@ -147,9 +147,9 @@ export default function Page() {
 
         </div>
 
-        <div className="mt-10 flex flex-col items-center">
+        <div className="mt-6 md:mt-8 lg:mt-10 flex flex-col items-center">
 
-          <p className="uppercase font-bold mb-3 tracking-widest">
+          <p className="uppercase font-bold mb-2 lg:mb-3 text-xs md:text-sm tracking-widest">
             Camera Preview
           </p>
 
@@ -158,12 +158,12 @@ export default function Page() {
             autoPlay
             muted
             playsInline
-            className="w-64 rounded border-4 border-blue-700"
+            className="w-40 md:w-56 lg:w-64 rounded border-4 border-blue-700"
           />
 
         </div>
 
-        <div className="flex justify-center mt-10">
+        <div className="flex justify-center mt-6 md:mt-8 lg:mt-10">
 
           <button
             onClick={() => router.push('/space/123')}
@@ -172,9 +172,13 @@ export default function Page() {
               border-blue-700
               bg-[#dce5f3]
               hover:bg-[#c7d8ef]
-              px-14
-              py-4
-              text-2xl
+              px-8
+              py-3
+              lg:px-14
+              lg:py-4
+              text-lg
+              md:text-xl
+              lg:text-2xl
               uppercase
               font-black
               tracking-widest
