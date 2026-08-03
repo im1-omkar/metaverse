@@ -196,7 +196,7 @@ export default function LandingPage() {
         {/* Navbar */}
         <nav className="w-full px-6 py-4 flex justify-between items-center bg-neutral-900 text-white border-b-8 border-black shadow-xl z-10 relative">
           <div className="text-sm md:text-xl text-blue-400 drop-shadow-[3px_3px_0px_#1e3a8a] tracking-wider">
-            NEXUS_WORLD
+            meta_verse
           </div>
           <div className="space-x-4 flex items-center">
             {isCheckingAuth ? (

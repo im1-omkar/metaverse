@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Outer Retro Blue Border -->
+  <rect x="2" y="2" width="28" height="28" fill="#1e3a8a" />
+  
+  <!-- Inner White/Gray Screen Border -->
+  <rect x="4" y="4" width="24" height="24" fill="#f8fafc" />
+  
+  <!-- Dark Screen Background -->
+  <rect x="6" y="6" width="20" height="20" fill="#0f172a" />
+  
+  <!-- Pixelated 'M' (Blue) -->
+  <rect x="9" y="10" width="2" height="10" fill="#3b82f6" />
+  <rect x="11" y="12" width="2" height="2" fill="#3b82f6" />
+  <rect x="13" y="14" width="6" height="2" fill="#3b82f6" />
+  <rect x="19" y="12" width="2" height="2" fill="#3b82f6" />
+  <rect x="21" y="10" width="2" height="10" fill="#3b82f6" />
+
+  <!-- Pixelated Green 'Ready' Dot Indicator -->
+  <rect x="15" y="18" width="2" height="2" fill="#22c55e" />
+  
+  <!-- Screen glare/reflection effect (Top right corner) -->
+  <rect x="22" y="8" width="2" height="2" fill="#334155" />
+</svg>
