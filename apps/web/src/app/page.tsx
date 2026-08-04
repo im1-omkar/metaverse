@@ -28,7 +28,7 @@ export default function LandingPage() {
         const API_BASE_URL =
           process.env.NEXT_PUBLIC_HTTP_URL || "http://invalidUrl/api/users";
 
-        const res = await fetch(`${API_BASE_URL}/me`, {
+        const res = await fetch(`${API_BASE_URL}/api/users/me`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -69,7 +69,7 @@ export default function LandingPage() {
       : { email, password };
 
     try {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      const response = await fetch(`${API_BASE_URL}/api/users${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
