@@ -2,8 +2,23 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { parse } from 'url';
 import { randomUUID } from 'crypto';
 
-const PORT = 8080;
-const wss = new WebSocketServer({ port: PORT });
+//future update : add jwt token to verify the access during upgradation
+
+const PORT = Number(process.env.PORT) || 8080;
+const FRONTEND_URL = process.env.FRONTEND_URL;
+
+const wss = new WebSocketServer({
+    port: PORT,
+    verifyClient: (info, callback) => {
+        const origin = info.origin;
+        if (FRONTEND_URL && origin !== FRONTEND_URL) {
+            console.warn(`Rejected connection from unauthorized origin: ${origin}`);
+            callback(false, 403, 'Forbidden');
+            return;
+        }
+        callback(true);
+    }
+});
 
 const spaces: Record<string, Record<string, any>> = {};
 
