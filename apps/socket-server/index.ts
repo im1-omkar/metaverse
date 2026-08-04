@@ -2,15 +2,14 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { parse } from 'url';
 import { randomUUID } from 'crypto';
 
-//future update : add jwt token to verify the access during upgradation
-
-const PORT = Number(process.env.PORT) || 8080;
+const PORT = parseInt(process.env.PORT || '8080');
 const FRONTEND_URL = process.env.FRONTEND_URL;
 
 const wss = new WebSocketServer({
     port: PORT,
     verifyClient: (info, callback) => {
         const origin = info.origin;
+
         if (FRONTEND_URL && origin !== FRONTEND_URL) {
             console.warn(`Rejected connection from unauthorized origin: ${origin}`);
             callback(false, 403, 'Forbidden');
@@ -22,11 +21,19 @@ const wss = new WebSocketServer({
 
 const spaces: Record<string, Record<string, any>> = {};
 
-wss.on('connection', (ws: WebSocket, req) => {
+interface GameWebSocket extends WebSocket {
+    isAlive: boolean;
+}
+
+wss.on('connection', (ws: GameWebSocket, req) => {
+    ws.isAlive = true;
+    ws.on('pong', () => { ws.isAlive = true; }); // Respond to pings
+
+    ws.on('error', console.error);
 
     const { query } = parse(req.url || '', true);
     const spaceId = query.spaceId as string;
-    const sprite = query.sprite as string || 'harry'; // NEW: Get the sprite from the URL
+    const sprite = query.sprite as string || 'harry';
 
     if (!spaceId) {
         ws.close(1008, "spaceId is required");
@@ -44,16 +51,14 @@ wss.on('connection', (ws: WebSocket, req) => {
         x: 100,
         y: 290,
         anim: '',
-        sprite: sprite // NEW: Save the sprite in the server state
+        sprite: sprite
     };
 
-    console.log(`[${spaceId}] Player ${playerId} (${sprite}) joined.`); // Helpful for debugging
+    console.log(`[${spaceId}] Player ${playerId} (${sprite}) joined.`);
 
-    // NEW: Update the typescript type to include sprite
     const playersList: Record<string, { x: number, y: number, anim: string, sprite: string }> = {};
     for (const id in spaces[spaceId]) {
         const p = spaces[spaceId][id];
-        // NEW: Include the sprite in the init list
         playersList[id] = { x: p.x, y: p.y, anim: p.anim, sprite: p.sprite };
     }
 
@@ -66,7 +71,6 @@ wss.on('connection', (ws: WebSocket, req) => {
     broadcastToSpace(spaceId, playerId, {
         type: 'player_joined',
         id: playerId,
-        // NEW: Tell everyone else which sprite this new player is
         player: { x: 100, y: 290, anim: '', sprite: sprite }
     });
 
@@ -107,22 +111,26 @@ wss.on('connection', (ws: WebSocket, req) => {
     });
 
     ws.on('close', () => {
-        if (spaces[spaceId] && spaces[spaceId][playerId]) {
-            console.log(`[${spaceId}] Player ${playerId} left.`);
-            delete spaces[spaceId][playerId];
-
-            broadcastToSpace(spaceId, playerId, {
-                type: 'player_left',
-                id: playerId
-            });
-
-            if (Object.keys(spaces[spaceId]).length === 0) {
-                console.log(`[${spaceId}] Space empty. Closing room.`);
-                delete spaces[spaceId];
-            }
-        }
+        cleanupPlayer(spaceId, playerId);
     });
 });
+
+function cleanupPlayer(spaceId: string, playerId: string) {
+    if (spaces[spaceId] && spaces[spaceId][playerId]) {
+        console.log(`[${spaceId}] Player ${playerId} left.`);
+        delete spaces[spaceId][playerId];
+
+        broadcastToSpace(spaceId, playerId, {
+            type: 'player_left',
+            id: playerId
+        });
+
+        if (Object.keys(spaces[spaceId]).length === 0) {
+            console.log(`[${spaceId}] Space empty. Closing room.`);
+            delete spaces[spaceId];
+        }
+    }
+}
 
 function broadcastToSpace(spaceId: string, excludePlayerId: string, payload: any) {
     const space = spaces[spaceId];
@@ -140,4 +148,20 @@ function broadcastToSpace(spaceId: string, excludePlayerId: string, payload: any
     }
 }
 
-console.log('WebSocket server is running on PORT : 8080');
+const interval = setInterval(() => {
+    wss.clients.forEach((ws) => {
+        const gameWs = ws as GameWebSocket;
+        if (gameWs.isAlive === false) {
+            return gameWs.terminate();
+        }
+
+        gameWs.isAlive = false;
+        gameWs.ping(); 
+    });
+}, 30000);
+
+wss.on('close', () => {
+    clearInterval(interval);
+});
+
+console.log(`WebSocket server is running on PORT: ${PORT}`);

@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
+const httpUrl = process.env.NEXT_PUBLIC_HTTP_URL;
+
 export default function SpaceLayout({
     children,
 }: {
@@ -22,7 +24,7 @@ export default function SpaceLayout({
             }
 
             try {
-                const response = await fetch("http://localhost:3001/api/users/me", {
+                const response = await fetch(`${httpUrl}/api/users/me`, {
                     method: "GET",
                     headers: {
                         "Authorization": `Bearer ${token}`
