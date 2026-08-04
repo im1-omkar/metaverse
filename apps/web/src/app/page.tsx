@@ -26,7 +26,7 @@ export default function LandingPage() {
 
       try {
         const API_BASE_URL =
-          process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/users";
+          process.env.NEXT_PUBLIC_HTTP_URL || "http://invalidUrl/api/users";
 
         const res = await fetch(`${API_BASE_URL}/me`, {
           headers: {
@@ -62,7 +62,7 @@ export default function LandingPage() {
     setLoading(true);
 
     const endpoint = isSignUp ? '/signup' : '/signin';
-    const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/users';
+    const API_BASE_URL = process.env.NEXT_PUBLIC_HTTP_URL || 'http://localhost:3001/api/users';
 
     const body = isSignUp
       ? { email, displayName, password }
